@@ -3,8 +3,12 @@ from xml.dom import minidom
 
 # A client for the Tracks API
 class TracksClient:
+  todos = []
+  contexts = []
+  projects = []
+
   def __init__(self, options = None):
-    if isinstance(options, list):
+    if isinstance(options, dict):
       self.setOptions(options)
 
   def setOptions(self, options):
@@ -48,8 +52,32 @@ class TracksClient:
   def parseContexts(self):
     self.parseXml('context')
 
+  def getContextById(self, id):
+    for context in self.contexts:
+      if context['id'] == id:
+        return context
+    return False
+
+  def getProjectById(self, id):
+    for project in self.projects:
+      if project['id'] == id:
+        return project
+    return False
+
+
   def parseTodos(self):
     self.parseXml('todo')
+    for todo in self.todos:
+      if 'context-id' in todo:
+        context = self.getContextById(todo['context-id'])
+        if context:
+          todo['context'] = context['name']
+
+      if 'project-id' in todo:
+        project = self.getProjectById(todo['project-id'])
+        if project:
+          todo['project'] = project['name']
+
 
   def parseXml(self, type):
     setattr(self, type + 's', [])
@@ -66,6 +94,8 @@ class TracksClient:
       getattr(self, type + 's').append(item)
 
   def getTodos(self):
+    self.getContexts()
+    self.getProjects()
     self.getRawTodos()
     self.parseTodos()
     return self.todos
