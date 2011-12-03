@@ -7,9 +7,14 @@ class TracksClient:
   contexts = []
   projects = []
 
+  verbose = False
+
   def __init__(self, options = None):
     if isinstance(options, dict):
       self.setOptions(options)
+
+    if options and 'verbose' in options and options['verbose'] == True:
+      self.verbose =  True
 
   def setOptions(self, options):
     for value in ['url', 'username', 'password']:
@@ -63,7 +68,6 @@ class TracksClient:
         return project
     return False
 
-
   def parseTodos(self):
     self.parseXml('todo')
     for todo in self.todos:
@@ -76,7 +80,6 @@ class TracksClient:
         project = self.getProjectById(todo['project-id'])
         if project:
           todo['project'] = project['name']
-
 
   def parseXml(self, type):
     setattr(self, type + 's', [])
@@ -129,12 +132,28 @@ class TracksClient:
     self.checkAuthenticated()
     return self.raw_response
 
+  def addContext(self, data):
+    self.contexts_url = self.getTracksUrl('context') 
+
+    xml = '<context>'
+    if 'name' in data:
+      xml += '<name>' + data['name'] + '</name>'
+    xml += '</context>'
+
+    self.makeRequest(self.contexts_url, 'post', xml)
+    self.checkAuthenticated()
+    return self.raw_response
+
+
   def makeRequest(self, url, method = 'get', xml = None):
     authentication = '-u' + self.username + ':' + self.password
-    curl_string = "curl --silent " + authentication + " " + url
+    curl_string = "curl --silent -H 'Content-Type: text/xml' " + authentication + " " + url
 
     if method == 'post':
       curl_string += ' -d "' + xml + '"'
+
+    if self.verbose:
+      print curl_string
 
     stdout_handle = os.popen(curl_string, 'r')
     self.raw_response = stdout_handle.read()
