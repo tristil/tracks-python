@@ -31,7 +31,6 @@ class TracksClient:
     elif type == 'project':
       return self.url + "/projects.xml"
 
-
   def checkAuthenticated(self):
     if self.raw_response.strip() == "Login unsuccessful.":
       raise RuntimeError('Login unsuccessful.')
@@ -118,8 +117,25 @@ class TracksClient:
     self.checkAuthenticated()
     return self.raw_response
 
-  def makeRequest(self, url):
+  def addProject(self, data):
+    self.projects_url = self.getTracksUrl('project') 
+
+    xml = '<project>'
+    if 'name' in data:
+      xml += '<name>' + data['name'] + '</name>'
+    xml += '</project>'
+
+    self.makeRequest(self.projects_url, 'post', xml)
+    self.checkAuthenticated()
+    return self.raw_response
+
+  def makeRequest(self, url, method = 'get', xml = None):
     authentication = '-u' + self.username + ':' + self.password
-    stdout_handle = os.popen("curl --silent " + authentication + " " + url, 'r')
+    curl_string = "curl --silent " + authentication + " " + url
+
+    if method == 'post':
+      curl_string += ' -d "' + xml + '"'
+
+    stdout_handle = os.popen(curl_string, 'r')
     self.raw_response = stdout_handle.read()
     return self.raw_response
