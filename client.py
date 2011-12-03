@@ -144,6 +144,16 @@ class TracksClient:
     self.checkAuthenticated()
     return self.raw_response
 
+  def addTodo(self, data):
+    self.todos_url = self.getTracksUrl('todo') 
+    xml = '<todo>'
+    if 'description' in data:
+      xml += '<decription>' + data['description'] + '</description>'
+    if 'project' in data:
+      xml += '<project_id>' + data['project'] + '</project_id>'
+    if 'context' in data:
+      xml += '<context_id>' + data['context'] + '</context_id>'
+    xml += '</todo>'
 
   def makeRequest(self, url, method = 'get', xml = None):
     authentication = '-u' + self.username + ':' + self.password
