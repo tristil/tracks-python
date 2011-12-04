@@ -147,24 +147,36 @@ class TracksClient:
     return self.raw_response
 
   def addTodo(self, data):
+    if self.verbose:
+      print "Adding todo: "
+      print data
+
     self.todos_url = self.getTracksUrl('todo') 
     xml = '<todo>'
     if 'description' in data:
       xml += '<description>' + data['description'] + '</description>'
 
     if 'project' in data:
-      for project in self.projects:
-        if project['name'] == data['project']:
-          xml += '<project_id>' + project['id'] + '</project_id>'
-          break
+      if data['project'] == 'default':
+        xml += '<project_id>1</project_id>'
+      else:
+        for project in self.projects:
+          if project['name'] == data['project']:
+            xml += '<project_id>' + project['id'] + '</project_id>'
+            break
+
     if 'context' in data:
-      for context in self.contexts:
-        if context['name'] == data['context']:
-          xml += '<context_id>' + context['id'] + '</context_id>'
-          break
+      if data['context'] == 'default':
+        xml += '<context_id>1</context_id>'
+      else:
+        for context in self.contexts:
+          if context['name'] == data['context']:
+            xml += '<context_id>' + context['id'] + '</context_id>'
+            break
+
     if 'done' in data:
       if data['done'] == True:
-        xml += '<status>completed</status>'
+        xml += '<state>completed</state>'
         xml += "<completed-at type='datetime'>"+ data['completed'] + 'T00:00:00Z'+"</completed-at>"
 
     xml += '</todo>'
@@ -187,6 +199,11 @@ class TracksClient:
     request.add_header('Content-Type', 'text/xml')
     base64string = base64.encodestring('%s:%s' % (self.username, self.password))[:-1]
     request.add_header("Authorization", "Basic %s" % base64string)
+
+    if self.verbose:
+      print "Requesting url " + url
+      if xml:
+        print "Sending xml payload: \n" + xml
 
     handle = None
     try:

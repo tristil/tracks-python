@@ -146,7 +146,7 @@ A big project
       self.assertEqual('201',tracks_id)
 
 
-    expected_xml_payload = {'data' : "<todo><description>Thing to Do</description><project_id>1</project_id><context_id>1</context_id><status>completed</status><completed-at type='datetime'>2011-10-30T00:00:00Z</completed-at></todo>" }
+    expected_xml_payload = {'data' : "<todo><description>Thing to Do</description><project_id>1</project_id><context_id>1</context_id><state>completed</state><completed-at type='datetime'>2011-10-30T00:00:00Z</completed-at></todo>" }
 
     add_todo_response = """\
 HTTP/1.1 201 Created
