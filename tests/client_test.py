@@ -125,9 +125,26 @@ A big project
 
   def setUp(self):
     self.client = tracks.TracksClient()
+    self.maxDiff = None
 
   def setupOptions(self):
     self.client.setOptions({'url' : 'http://tracks.example.com', 'username' : 'username', 'password' : 'password'})
+
+  def test_addDoneTodo(self):
+    self.setupOptions()
+    def add_todo():
+      self.client.getContexts()
+      self.client.getProjects()
+      self.client.addTodo({
+        'description' : 'Thing to Do', 
+        'context' : 'work',
+        'project' : 'bigproject', 
+        'done' : True, 
+        'completed' : '2011-10-30'
+        }
+      )
+    expected_xml_payload = {'data' : "<todo><description>Thing to Do</description><project_id>1</project_id><context_id>1</context_id><status>completed</status><completed-at type='datetime'>2011-10-30T00:00:00Z</completed-at></todo>" }
+    self.mock_net_request([self.contexts_xml, self.projects_xml, ""], add_todo, expected_xml_payload)
 
   def test_addTodo(self):
     self.setupOptions()

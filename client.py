@@ -162,7 +162,13 @@ class TracksClient:
         if context['name'] == data['context']:
           xml += '<context_id>' + context['id'] + '</context_id>'
           break
+    if 'done' in data:
+      if data['done'] == True:
+        xml += '<status>completed</status>'
+        xml += "<completed-at type='datetime'>"+ data['completed'] + 'T00:00:00Z'+"</completed-at>"
+
     xml += '</todo>'
+    xml = unicode(xml).encode('unicode_escape')
     self.makeRequest(self.todos_url, 'post', xml)
     self.checkAuthenticated()
     return self.raw_response
