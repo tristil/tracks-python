@@ -1,5 +1,6 @@
-import os
+import os, urllib, urllib2, sys, base64
 from xml.dom import minidom
+from pipes import quote
 
 # A client for the Tracks API
 class TracksClient:
@@ -93,6 +94,7 @@ class TracksClient:
           if len(node.childNodes) > 0:
             innerHTML = node.childNodes[0].nodeValue
             item[node.nodeName] = innerHTML
+      # add node to self.todos list, e.g.
       getattr(self, type + 's').append(item)
 
   def getTodos(self):
@@ -148,23 +150,37 @@ class TracksClient:
     self.todos_url = self.getTracksUrl('todo') 
     xml = '<todo>'
     if 'description' in data:
-      xml += '<decription>' + data['description'] + '</description>'
+      xml += '<description>' + data['description'] + '</description>'
+
     if 'project' in data:
-      xml += '<project_id>' + data['project'] + '</project_id>'
+      for project in self.projects:
+        if project['name'] == data['project']:
+          xml += '<project_id>' + project['id'] + '</project_id>'
+          break
     if 'context' in data:
-      xml += '<context_id>' + data['context'] + '</context_id>'
+      for context in self.contexts:
+        if context['name'] == data['context']:
+          xml += '<context_id>' + context['id'] + '</context_id>'
+          break
     xml += '</todo>'
+    self.makeRequest(self.todos_url, 'post', xml)
+    self.checkAuthenticated()
+    return self.raw_response
+
 
   def makeRequest(self, url, method = 'get', xml = None):
-    authentication = '-u' + self.username + ':' + self.password
-    curl_string = "curl --silent -H 'Content-Type: text/xml' " + authentication + " " + url
+    request = urllib2.Request(url)
+    request.add_header('Content-Type', 'text/xml')
+    base64string = base64.encodestring('%s:%s' % (self.username, self.password))[:-1]
+    request.add_header("Authorization", "Basic %s" % base64string)
 
-    if method == 'post':
-      curl_string += ' -d "' + xml + '"'
+    handle = None
+    try:
+      handle = urllib2.urlopen(request, data = xml)
+    except IOError, e:
+      print e
+      print "Failed to connect to remote Tracks instance " + url
 
-    if self.verbose:
-      print curl_string
+    self.raw_response = handle.read()
 
-    stdout_handle = os.popen(curl_string, 'r')
-    self.raw_response = stdout_handle.read()
     return self.raw_response

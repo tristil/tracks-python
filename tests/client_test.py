@@ -1,23 +1,31 @@
 import unittest
-import os, sys, shutil, re
+import os, sys, shutil, re, urllib2
 
 sys.path.insert(0, os.path.abspath(os.path.abspath(__file__ )+ "/../../../"))
 
 import tracks
 
-from tracks.tests.test_config import TRACKS_URL, TRACKS_USERNAME, TRACKS_PASSWORD
-
 from mock import Mock, patch
 
-def mock_net_request(request_string, func):
-  with patch.object(os, 'popen') as mock_method:
-    class MockFileObject():
-      def read(self):
-        return request_string 
-    mock_method.return_value = MockFileObject()
-    func()
-
 class TestTracksClient(unittest.TestCase):
+
+  def mock_net_request(self, response_string, func, expected_post_data = None):
+    with patch.object(urllib2, 'urlopen') as mock_method:
+      class MockFileObject():
+        call_count = 0
+        def read(self):
+          if isinstance(response_string, list):
+            response = response_string[self.call_count]
+            self.call_count += 1
+            return response
+          else:
+            return response_string 
+      mock_method.return_value = MockFileObject()
+      func()
+
+    if expected_post_data:
+      last_call = mock_method.call_args_list[-1]
+      self.assertEqual(expected_post_data, last_call[1])
 
   todos_xml = """\
 <todos type="array">
@@ -90,11 +98,11 @@ class TestTracksClient(unittest.TestCase):
 <default-context-id type="integer" nil="true"/>
 <default-tags nil="true"/>
 <description>
-When the user fills in one of the three corp_landing forms, SugarCRM gets updated with lead information
+A big project
 </description>
 <id type="integer">1</id>
 <last-reviewed type="datetime">2008-08-17T22:44:18-04:00</last-reviewed>
-<name>corp_landing form project</name>
+<name>bigproject</name>
 <position type="integer">1</position>
 <state>completed</state>
 <updated-at type="datetime">2009-01-04T21:53:59-05:00</updated-at>
@@ -118,75 +126,92 @@ When the user fills in one of the three corp_landing forms, SugarCRM gets update
   def setUp(self):
     self.client = tracks.TracksClient()
 
+  def setupOptions(self):
+    self.client.setOptions({'url' : 'http://tracks.example.com', 'username' : 'username', 'password' : 'password'})
+
+  def test_addTodo(self):
+    self.setupOptions()
+    def add_todo():
+      self.client.getContexts()
+      self.client.getProjects()
+      self.client.addTodo({
+        'description' : 'Thing to Do', 
+        'context' : 'work',
+        'project' : 'bigproject', 
+        }
+      )
+    expected_xml_payload = {'data' : "<todo><description>Thing to Do</description><project_id>1</project_id><context_id>1</context_id></todo>" }
+    self.mock_net_request([self.contexts_xml, self.projects_xml, ""], add_todo, expected_xml_payload)
+
   def test_setOptions(self):
-    self.client.setOptions({'url' : TRACKS_URL, 
-      'username' : TRACKS_USERNAME, 'password' : TRACKS_PASSWORD})
+    self.setupOptions()
     with self.assertRaises(RuntimeError) as cm:
-      self.client.setOptions({'url' : TRACKS_URL})
+      self.client.setOptions({'url' : 'http://tracks.example.com'})
     with self.assertRaises(RuntimeError) as cm:
-      self.client.setOptions({'url' : TRACKS_URL, 
-        'username' : TRACKS_USERNAME})
+      self.client.setOptions({'url' : 'http://tracks.example.com', 
+        'username' : 'username'})
 
   def test_loginErrorHandling(self):
     with self.assertRaises(RuntimeError) as cm:
       self.client.getRawTodos()
-    self.client.setOptions({'url' : TRACKS_URL, 
-      'username' : TRACKS_USERNAME + 'wrong', 
-      'password' : TRACKS_PASSWORD + 'wrong'})
-
+    self.client.setOptions({'url' : 'http://tracks.example.com', 
+      'username' : 'username' + 'wrong', 
+      'password' : 'password' + 'wrong'})
     def try_to_get_todos():
       self.client.getRawTodos()
-
     with self.assertRaises(RuntimeError) as cm:
-      mock_net_request('Login unsuccessful.', try_to_get_todos)
+      self.mock_net_request('Login unsuccessful.', try_to_get_todos)
 
   def test_getRawTodos(self):
-    self.client.setOptions({'url' : TRACKS_URL, 'username' : TRACKS_USERNAME, 'password' : TRACKS_PASSWORD})
-
+    self.setupOptions()
     def get_raw_todos():
       self.assertRegexpMatches(self.client.getRawTodos(), r'<todo>')
-
-    mock_net_request(self.todos_xml, get_raw_todos)
+    self.mock_net_request(self.todos_xml, get_raw_todos)
 
   def test_getTodos(self):
-    self.client.setOptions({'url' : TRACKS_URL, 'username' : TRACKS_USERNAME, 'password' : TRACKS_PASSWORD})
+    self.setupOptions()
     def get_todos():
       self.assertTrue(isinstance(self.client.getTodos(), list))
-    mock_net_request(self.todos_xml, get_todos)
+    self.mock_net_request(self.todos_xml, get_todos)
 
   def test_getRawContexts(self):
-    self.client.setOptions({'url' : TRACKS_URL, 'username' : TRACKS_USERNAME, 'password' : TRACKS_PASSWORD})
+    self.setupOptions()
     def get_contexts():
       self.assertRegexpMatches(self.client.getRawContexts(), r'<context>')
-    mock_net_request(self.contexts_xml, get_contexts)
+    self.mock_net_request(self.contexts_xml, get_contexts)
 
   def test_getContexts(self):
-    self.client.setOptions({'url' : TRACKS_URL, 'username' : TRACKS_USERNAME, 'password' : TRACKS_PASSWORD})
-
+    self.setupOptions()
     def get_contexts():
       self.assertTrue(isinstance(self.client.getContexts(), list))
-    mock_net_request(self.contexts_xml, get_contexts)
+    self.mock_net_request(self.contexts_xml, get_contexts)
 
   def test_getRawProjects(self):
-    self.client.setOptions({'url' : TRACKS_URL, 'username' : TRACKS_USERNAME, 'password' : TRACKS_PASSWORD})
-
+    self.setupOptions()
     def get_projects():
       self.assertRegexpMatches(self.client.getRawProjects(), r'<project>')
-    mock_net_request(self.projects_xml, get_projects)
+    self.mock_net_request(self.projects_xml, get_projects)
 
   def test_getProjects(self):
-    self.client.setOptions({'url' : TRACKS_URL, 'username' : TRACKS_USERNAME, 'password' : TRACKS_PASSWORD})
+    self.setupOptions()
 
     def get_projects():
       self.assertTrue(isinstance(self.client.getProjects(), list))
-    mock_net_request(self.projects_xml, get_projects)
+    self.mock_net_request(self.projects_xml, get_projects)
 
   def test_addProject(self):
-    self.client.setOptions({'url' : TRACKS_URL, 'username' : TRACKS_USERNAME, 'password' : TRACKS_PASSWORD})
+    self.setupOptions()
     def add_project():
       self.client.addProject({'name' : 'Foo'})
-    mock_net_request(self.projects_xml, add_project)
+    expected_xml = 'http://tracks.example.com/projects.xml -d "<project><name>Foo</name></project>"'
+    self.mock_net_request(self.projects_xml, add_project)
 
+  def test_addContext(self):
+    self.setupOptions()
+    def add_project():
+      self.client.addContext({'name' : 'Foo'})
+    expected_xml = 'http://tracks.example.com/contexts.xml -d "<context><name>Foo</name></context>"'
+    self.mock_net_request(self.projects_xml, add_project)
 
 if __name__ == '__main__':
   unittest.main()
