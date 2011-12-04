@@ -1,4 +1,4 @@
-import os, urllib, urllib2, sys, base64
+import os, urllib, urllib2, sys, base64, re
 from xml.dom import minidom
 from pipes import quote
 
@@ -171,7 +171,15 @@ class TracksClient:
     xml = unicode(xml).encode('unicode_escape')
     self.makeRequest(self.todos_url, 'post', xml)
     self.checkAuthenticated()
-    return self.raw_response
+
+    pattern = r'\/todos\/(\d+)\.xml'
+    m = re.search(pattern, self.raw_response)
+    if m and m.group(1):
+      tracks_id = m.group(1)
+    else:
+      tracks_id = None
+
+    return tracks_id 
 
 
   def makeRequest(self, url, method = 'get', xml = None):

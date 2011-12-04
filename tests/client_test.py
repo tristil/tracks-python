@@ -135,7 +135,7 @@ A big project
     def add_todo():
       self.client.getContexts()
       self.client.getProjects()
-      self.client.addTodo({
+      tracks_id = self.client.addTodo({
         'description' : 'Thing to Do', 
         'context' : 'work',
         'project' : 'bigproject', 
@@ -143,8 +143,16 @@ A big project
         'completed' : '2011-10-30'
         }
       )
+      self.assertEqual('201',tracks_id)
+
+
     expected_xml_payload = {'data' : "<todo><description>Thing to Do</description><project_id>1</project_id><context_id>1</context_id><status>completed</status><completed-at type='datetime'>2011-10-30T00:00:00Z</completed-at></todo>" }
-    self.mock_net_request([self.contexts_xml, self.projects_xml, ""], add_todo, expected_xml_payload)
+
+    add_todo_response = """\
+HTTP/1.1 201 Created
+Location: http://tracks.example.com/todos/201.xml
+"""
+    self.mock_net_request([self.contexts_xml, self.projects_xml, add_todo_response], add_todo, expected_xml_payload)
 
   def test_addTodo(self):
     self.setupOptions()
