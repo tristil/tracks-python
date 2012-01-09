@@ -146,38 +146,37 @@ class TracksClient:
     self.checkAuthenticated()
     return self.raw_response
 
-  def addTodo(self, data):
+  def addTodo(self, todo):
     if self.verbose:
       print "Adding todo: "
-      print data
+      print todo
 
     self.todos_url = self.getTracksUrl('todo') 
     xml = '<todo>'
-    if 'description' in data:
-      xml += '<description>' + data['description'] + '</description>'
+    if todo.getDescription() != None:
+      xml += '<description>' + todo.getDescription() + '</description>'
 
-    if 'project' in data:
-      if data['project'] == 'default':
+    if todo.getProject() != None:
+      if todo.getProject()  == 'default':
         xml += '<project_id>1</project_id>'
       else:
         for project in self.projects:
-          if project['name'] == data['project']:
+          if project['name'] == todo.getProject():
             xml += '<project_id>' + project['id'] + '</project_id>'
             break
 
-    if 'context' in data:
-      if data['context'] == 'default':
+    if todo.getContext() != None:
+      if todo.getContext() == 'default':
         xml += '<context_id>1</context_id>'
       else:
         for context in self.contexts:
-          if context['name'] == data['context']:
+          if context['name'] == todo.getContext():
             xml += '<context_id>' + context['id'] + '</context_id>'
             break
 
-    if 'done' in data:
-      if data['done'] == True:
-        xml += '<state>completed</state>'
-        xml += "<completed-at type='datetime'>"+ data['completed'] + 'T00:00:00Z'+"</completed-at>"
+    if todo.isDone() == True:
+      xml += '<state>completed</state>'
+      xml += "<completed-at type='datetime'>"+ todo.getCompletedDate() + 'T00:00:00Z'+"</completed-at>"
 
     xml += '</todo>'
     xml = unicode(xml).encode('unicode_escape')
