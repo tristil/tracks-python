@@ -17,6 +17,7 @@ Usage
 -----
 
 ::
+
   # Instantiate the client
   client = TracksClient() 
 
