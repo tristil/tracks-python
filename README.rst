@@ -1,3 +1,5 @@
+What Is It?
+-----------
 This is a simple Python client library for accessing a Tracks installation
 (`Tracks <https://github.com/TracksApp/tracks>`_ GTD todo list web application)
 
@@ -11,6 +13,33 @@ Major caveats for using this library are:
 * I don't understand relative module inclusion in Python very well. There's a
   lot of appending the path of the parent directory to the paths list.
 
+Usage
+-----
+
+::
+  # Instantiate the client
+  client = TracksClient() 
+
+  # Set connection options
+  client.setOptions({'url' : 'http://tracks.example.com', 'username' : 'username', 'password' : 'password'})
+
+  # Get the objects from the server
+  todos = client.getTodos()
+  contexts = client.getContexts()
+  projects = client.getProjects()
+
+  # Add objects to the server
+  client.addContext({'name' : 'Foo'})
+  client.addProject({'name' : 'Foo'})
+  client.addTodo({
+        'description' : 'Thing to Do', 
+        'context' : 'work',
+        'project' : 'bigproject', 
+        }
+      )
+
+Feedback
+--------
 If somebody actually has a use for this library and has additional
 requirements/ bugs / patches, go ahead and submit them as Github issues and I
 will respond to them as quickly as possible.
