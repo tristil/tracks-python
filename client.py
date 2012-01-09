@@ -182,9 +182,8 @@ class TracksClient:
     xml = unicode(xml).encode('unicode_escape')
     self.makeRequest(self.todos_url, 'post', xml)
     self.checkAuthenticated()
-
-    pattern = r'\/todos\/(\d+)\.xml'
-    m = re.search(pattern, self.raw_response)
+    pattern = r'\/todos\/(\d+)'
+    m = re.search(pattern, self.raw_response_headers.get('Location'))
     if m and m.group(1):
       tracks_id = m.group(1)
     else:
@@ -212,5 +211,6 @@ class TracksClient:
       print "Failed to connect to remote Tracks instance " + url
 
     self.raw_response = handle.read()
+    self.raw_response_headers = handle.info()
 
     return self.raw_response
