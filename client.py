@@ -207,8 +207,11 @@ class TracksClient:
     try:
       handle = urllib2.urlopen(request, data = xml)
     except IOError, e:
-      print e
-      print "Failed to connect to remote Tracks instance " + url
+      if e.code == 200:
+        handle = e
+      else:
+        print e
+        print "Failed to connect to remote Tracks instance " + url
 
     self.raw_response = handle.read()
     self.raw_response_headers = handle.info()
