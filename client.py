@@ -207,7 +207,7 @@ class TracksClient:
     try:
       handle = urllib2.urlopen(request, data = xml)
     except IOError, e:
-      if e.code == 200:
+      if e.code == 201:
         handle = e
       else:
         print e
