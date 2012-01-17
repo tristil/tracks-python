@@ -122,8 +122,8 @@ class TracksClient:
     self.getProjects()
     self.getRawTodos()
     self.parseTodos()
-    self.getRawDoneTodos()
-    self.parseDoneTodos()
+    #self.getRawDoneTodos()
+    #self.parseDoneTodos()
 
     return self.todos
 
