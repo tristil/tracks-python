@@ -24,14 +24,19 @@ class TracksClient:
       else:
         setattr(self, value, options[value])
 
-  def getTracksUrl(self, type = 'todo'):
+  def getTracksUrl(self, type = 'todo', id = None):
     for value in ['url', 'username', 'password']:
       try:
         getattr(self, value)
       except:
         raise RuntimeError(value + ' is not set')
     if type == 'todo':
-      return self.url + "/todos.xml"
+      if id:
+        return self.url + "/todos/" + id + ".xml"
+      else:
+        return self.url + "/todos.xml"
+    elif type == 'done_todo':
+      return self.url + "/todos/done.xml"
     elif type == 'context':
       return self.url + "/contexts.xml"
     elif type == 'project':
@@ -82,6 +87,21 @@ class TracksClient:
         if project:
           todo['project'] = project['name']
 
+  def parseDoneTodos(self):
+    self.parseXml('done_todo')
+    for todo in self.todos:
+      if 'context-id' in todo:
+        context = self.getContextById(todo['context-id'])
+        if context:
+          todo['context'] = context['name']
+
+      if 'project-id' in todo:
+        project = self.getProjectById(todo['project-id'])
+        if project:
+          todo['project'] = project['name']
+
+      self.todos.append(todo)
+
   def parseXml(self, type):
     setattr(self, type + 's', [])
 
@@ -102,11 +122,20 @@ class TracksClient:
     self.getProjects()
     self.getRawTodos()
     self.parseTodos()
+    self.getRawDoneTodos()
+    self.parseDoneTodos()
+
     return self.todos
 
   def getRawTodos(self):
     self.todos_url = self.getTracksUrl('todo') 
     self.makeRequest(self.todos_url)
+    self.checkAuthenticated()
+    return self.raw_response
+
+  def getRawDoneTodos(self):
+    self.done_todos_url = self.getTracksUrl('done_todo') 
+    self.makeRequest(self.done_todos_url)
     self.checkAuthenticated()
     return self.raw_response
 
@@ -146,12 +175,8 @@ class TracksClient:
     self.checkAuthenticated()
     return self.raw_response
 
-  def addTodo(self, todo):
-    if self.verbose:
-      print "Adding todo: "
-      print todo
 
-    self.todos_url = self.getTracksUrl('todo') 
+  def buildXml(self, todo):
     xml = '<todo>'
     if todo.getDescription() != None:
       xml += '<description>' + todo.getDescription() + '</description>'
@@ -180,6 +205,29 @@ class TracksClient:
 
     xml += '</todo>'
     xml = unicode(xml).encode('unicode_escape')
+    return xml
+
+  def updateTodo(self, todo):
+    if self.verbose:
+      print "Updating todo: "
+      print todo
+
+    self.todos_url = self.getTracksUrl('todo', todo.getTracksId()) 
+    xml = self.buildXml(todo)
+    self.makeRequest(self.todos_url, 'put', xml)
+    self.checkAuthenticated()
+
+    return True
+
+  def addTodo(self, todo):
+    if self.verbose:
+      print "Adding todo: "
+      print todo
+
+    self.todos_url = self.getTracksUrl('todo') 
+
+    xml = self.buildXml(todo)
+    
     self.makeRequest(self.todos_url, 'post', xml)
     self.checkAuthenticated()
     pattern = r'\/todos\/(\d+)'
@@ -197,6 +245,9 @@ class TracksClient:
     request.add_header('Content-Type', 'text/xml')
     base64string = base64.encodestring('%s:%s' % (self.username, self.password))[:-1]
     request.add_header("Authorization", "Basic %s" % base64string)
+
+    if method == 'put':
+      request.get_method = lambda : 'PUT'
 
     if self.verbose:
       print "Requesting url " + url
