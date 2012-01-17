@@ -4,6 +4,7 @@ import os, sys, shutil, re, urllib2
 sys.path.insert(0, os.path.abspath(os.path.abspath(__file__ )+ "/../../../"))
 
 import tracks
+import todotxt
 
 from mock import Mock, patch
 
@@ -12,14 +13,31 @@ class TestTracksClient(unittest.TestCase):
   def mock_net_request(self, response_string, func, expected_post_data = None):
     with patch.object(urllib2, 'urlopen') as mock_method:
       class MockFileObject():
-        call_count = 0
+        read_call_count = 0
+        info_call_count = 0
+
         def read(self):
           if isinstance(response_string, list):
-            response = response_string[self.call_count]
-            self.call_count += 1
+            response = response_string[self.read_call_count]
+            self.read_call_count += 1
             return response
           else:
             return response_string 
+
+        def info(self):
+          if isinstance(response_string, list):
+            class ResponseHeaders:
+              def __init__(self, response_dict):
+                self.response = response_dict
+              def get(self, key):
+                return self.response[key]
+
+            response = response_string[self.info_call_count]
+            self.info_call_count += 1
+            return ResponseHeaders({'Location' : response})
+          else:
+            return response_string 
+
       mock_method.return_value = MockFileObject()
       func()
 
@@ -135,14 +153,14 @@ A big project
     def add_todo():
       self.client.getContexts()
       self.client.getProjects()
-      tracks_id = self.client.addTodo({
+      todo = todotxt.Todo({
         'description' : 'Thing to Do', 
         'context' : 'work',
         'project' : 'bigproject', 
         'done' : True, 
         'completed' : '2011-10-30'
-        }
-      )
+        })
+      tracks_id = self.client.addTodo(todo)
       self.assertEqual('201',tracks_id)
 
 
@@ -159,12 +177,13 @@ Location: http://tracks.example.com/todos/201.xml
     def add_todo():
       self.client.getContexts()
       self.client.getProjects()
-      self.client.addTodo({
+      todo = todotxt.Todo({
         'description' : 'Thing to Do', 
         'context' : 'work',
         'project' : 'bigproject', 
-        }
-      )
+        'done'    : False
+        })
+      self.client.addTodo(todo)
     expected_xml_payload = {'data' : "<todo><description>Thing to Do</description><project_id>1</project_id><context_id>1</context_id></todo>" }
     self.mock_net_request([self.contexts_xml, self.projects_xml, ""], add_todo, expected_xml_payload)
 
